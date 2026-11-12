@@ -72,3 +72,4 @@ export default function handler(req, res) {
     fs.createReadStream(mediaPath).pipe(res);
   }
 }
+
