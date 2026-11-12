@@ -8,8 +8,9 @@
 (function () {
   'use strict';
 
-  // --- Backend Configuration ---
-  const BACKEND_URL = window.__BACKEND_URL__ || 'http://localhost:5001';
+  // --- Backend Configuration (Supports Vercel Deployed & Localhost) ---
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const BACKEND_URL = window.__BACKEND_URL__ || (isLocalhost && window.location.port !== '3000' && window.location.port !== '5001' ? 'http://localhost:5001' : '');
   let backendOnline = false;
 
   // --- Defaults (overridden dynamically if backend metadata is loaded) ---
