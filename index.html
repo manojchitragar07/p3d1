@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROJECT 3D // Spatial Asset Experience</title>
+  <meta name="description" content="Cinematic scroll-driven 3D video landing page with decoupled backend streaming.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;600;700;800&family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body data-theme="cyan">
+
+  <!-- Preloader Screen -->
+  <div id="preloader" class="preloader">
+    <div class="preloader-content">
+      <div class="preloader-glyph">
+        <svg viewBox="0 0 100 100" class="ring-svg">
+          <circle cx="50" cy="50" r="42" class="ring-track"></circle>
+          <circle cx="50" cy="50" r="42" class="ring-progress" id="preloadRing"></circle>
+        </svg>
+        <span class="preloader-icon">◈</span>
+      </div>
+      <div class="preloader-brand">PROJECT 3D // NEXUS</div>
+      <div class="preloader-status" id="preloadStatus">CONNECTING TO STREAMING BACKEND...</div>
+      <div class="preloader-progress-bar">
+        <div class="preloader-fill" id="preloadFill"></div>
+      </div>
+      <button id="startBtn" class="preloader-btn" disabled>
+        <span>ENTER EXPERIENCE</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Pinned Video Background Canvas -->
+  <div class="video-viewport" id="viewport">
+    <video
+      id="bgVideo"
+      playsinline
+      muted
+      preload="auto"
+      tabindex="-1">
+      <!-- Sources populated dynamically with backend stream & local fallback -->
+      <source src="/api/video/stream" type="video/mp4">
+      <source src="./gemini_generated_video_b8e50077.mp4" type="video/mp4">
+    </video>
+    
+    <!-- Cinematic Lighting & Texture Overlays -->
+    <div class="video-overlay vignette"></div>
+    <div class="video-overlay ambient-glow"></div>
+    <div class="video-overlay grid-pattern"></div>
+    <div class="video-overlay noise-layer"></div>
+    
+    <!-- 3D Spatial Wireframe Target HUD -->
+    <div class="hud-centerpiece" id="hudCenterpiece">
+      <div class="crosshair-reticle">
+        <span class="reticle-corner tl"></span>
+        <span class="reticle-corner tr"></span>
+        <span class="reticle-corner bl"></span>
+        <span class="reticle-corner br"></span>
+        <div class="reticle-center"></div>
+      </div>
+      <div class="reticle-tag">OBJECT TRACKING // ACTIVE</div>
+    </div>
+  </div>
+
+  <!-- HUD Header Bar -->
+  <header class="hud-header">
+    <div class="header-left">
+      <a href="#" class="brand-badge" id="brandReset">
+        <span class="brand-beacon"></span>
+        <span class="brand-title">NEXUS<span class="accent-text">.3D</span></span>
+        <span class="brand-tag">EXP.01</span>
+      </a>
+      <div class="sys-status">
+        <span class="status-dot" id="backendStatusDot"></span>
+        <span class="status-label">BACKEND:</span>
+        <span class="status-val" id="backendStatusVal">CHECKING...</span>
+      </div>
+    </div>
+
+    <!-- Chapter Navigation Jump Links -->
+    <nav class="chapter-nav" aria-label="Timeline navigation">
+      <button class="nav-ch-btn active" data-chapter="0">
+        <span class="ch-idx">01</span>
+        <span class="ch-name">GENESIS</span>
+      </button>
+      <button class="nav-ch-btn" data-chapter="1">
+        <span class="ch-idx">02</span>
+        <span class="ch-name">GEOMETRY</span>
+      </button>
+      <button class="nav-ch-btn" data-chapter="2">
+        <span class="ch-idx">03</span>
+        <span class="ch-name">DYNAMICS</span>
+      </button>
+      <button class="nav-ch-btn" data-chapter="3">
+        <span class="ch-idx">04</span>
+        <span class="ch-name">CORE ARCH</span>
+      </button>
+      <button class="nav-ch-btn" data-chapter="4">
+        <span class="ch-idx">05</span>
+        <span class="ch-name">SPECIFICATION</span>
+      </button>
+    </nav>
+
+    <div class="header-right">
+      <!-- Auto Tour Button -->
+      <button id="autoTourBtn" class="hud-btn" title="Toggle Cinematic Auto-Tour (Space)">
+        <svg class="icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="display:none;">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        <span class="btn-text">AUTO TOUR</span>
+      </button>
+
+      <!-- Audio Mute / Unmute Button -->
+      <button id="audioToggleBtn" class="hud-icon-btn" title="Toggle Audio (M)">
+        <svg class="icon-muted" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+          <line x1="23" y1="9" x2="17" y2="15"/>
+          <line x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+        <svg class="icon-unmuted" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+      </button>
+
+      <!-- Theme Accent Selector Dropdown -->
+      <div class="theme-dropdown">
+        <button id="themeToggleBtn" class="hud-icon-btn" title="Switch Theme Accent">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+        <div class="theme-menu" id="themeMenu">
+          <button class="theme-item active" data-color="cyan"><span class="swatch cyan"></span> Cyan Neo</button>
+          <button class="theme-item" data-color="emerald"><span class="swatch emerald"></span> Emerald Bio</button>
+          <button class="theme-item" data-color="violet"><span class="swatch violet"></span> Electric Violet</button>
+          <button class="theme-item" data-color="amber"><span class="swatch amber"></span> Solar Amber</button>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button id="openSpecBtn" class="cta-primary-pill">
+        <span>EXPLORE SPECS</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Side HUD Telemetry Rail -->
+  <aside class="hud-rail hud-rail-left">
+    <div class="rail-item">
+      <span class="rail-label">RENDER</span>
+      <span class="rail-val" id="hudFps">60.0 FPS</span>
+    </div>
+    <div class="rail-item">
+      <span class="rail-label">COORDS</span>
+      <span class="rail-val" id="hudCoords">X: 000 | Y: 142</span>
+    </div>
+    <div class="rail-item">
+      <span class="rail-label">ROTATION</span>
+      <span class="rail-val" id="hudRotation">000.0°</span>
+    </div>
+    <div class="rail-item">
+      <span class="rail-label">BACKEND STREAM</span>
+      <span class="rail-val" id="hudStreamSource">PORT 5001</span>
+    </div>
+  </aside>
+
+  <!-- Right Side HUD Progress Rail -->
+  <aside class="hud-rail hud-rail-right">
+    <div class="progress-ring-container">
+      <svg class="progress-ring" width="56" height="56">
+        <circle class="ring-bg" stroke-width="3" cx="28" cy="28" r="23" />
+        <circle class="ring-fg" id="scrollProgressCircle" stroke-width="3" cx="28" cy="28" r="23" />
+      </svg>
+      <div class="ring-pct" id="scrollPct">0%</div>
+    </div>
+    <div class="rail-item align-right">
+      <span class="rail-label">TIME</span>
+      <span class="rail-val" id="hudCurrentTime">00.00s</span>
+    </div>
+    <div class="rail-item align-right">
+      <span class="rail-label">FRAME</span>
+      <span class="rail-val" id="hudCurrentFrame">FR: 001</span>
+    </div>
+    <div class="rail-item align-right">
+      <span class="rail-label">MODE</span>
+      <span class="rail-val" id="hudModeLabel">SCRUBBING</span>
+    </div>
+  </aside>
+
+  <!-- Scrollytelling Virtual Track (600vh total height for fine scrubbing control) -->
+  <main class="scroll-track" id="scrollTrack">
+
+    <!-- Section 1: Hero / Genesis (0% - 20%) -->
+    <section class="story-section section-hero active" id="sec0" data-index="0" data-start="0" data-end="0.20">
+      <div class="section-inner hero-inner">
+        <div class="badge-pill">
+          <span class="badge-pulse"></span>
+          <span>SPATIAL DESIGN 3.0 // ARTIFACT PREVIEW</span>
+        </div>
+        <h1 class="hero-title">
+          <span class="hero-line">PRECISION</span>
+          <span class="hero-line glow-text">IN MOTION</span>
+        </h1>
+        <p class="hero-sub">
+          A physical manifestation of computational aesthetics. Driven by real-time physics and sculpted with sub-millimeter aerospace tolerances.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-glow" id="heroExploreBtn">
+            <span>START ROTATION</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+            </svg>
+          </button>
+          <button class="btn-ghost" id="heroAutoTourBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span>WATCH CINEMATIC</span>
+          </button>
+        </div>
+
+        <div class="scroll-indicator" id="scrollPrompt">
+          <div class="mouse-icon">
+            <div class="mouse-wheel"></div>
+          </div>
+          <span class="scroll-label">SCROLL DOWN TO REVEAL FORM</span>
+          <div class="scroll-arrow">↓</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Geometry & Form (20% - 42%) -->
+    <section class="story-section section-geometry" id="sec1" data-index="1" data-start="0.20" data-end="0.42">
+      <div class="section-inner layout-split-left">
+        <div class="glass-card story-card">
+          <div class="card-header">
+            <span class="card-stage">CHAPTER 02 // ANATOMY</span>
+            <div class="card-dots"><span></span><span></span><span></span></div>
+          </div>
+          <h2 class="card-title">Continuous Curvature Without Compromise</h2>
+          <p class="card-body">
+            Each planar boundary transitions smoothly into fluid aerodynamic surfaces. Structural continuity minimizes vortex turbulence and optimizes tactile ergonomic grip.
+          </p>
+          <div class="feature-pills">
+            <div class="f-pill">
+              <span class="f-icon">◈</span>
+              <div class="f-text">
+                <strong>Zero-Seam Monocoque</strong>
+                <span>Continuous forged composite frame</span>
+              </div>
+            </div>
+            <div class="f-pill">
+              <span class="f-icon">✦</span>
+              <div class="f-text">
+                <strong>Sub-Micron Finish</strong>
+                <span>Optical-grade multi-layer coating</span>
+              </div>
+            </div>
+            <div class="f-pill">
+              <span class="f-icon">⬢</span>
+              <div class="f-text">
+                <strong>0.18 Cd Aero-Profile</strong>
+                <span>Computational fluid dynamic perfection</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Dynamics & Movement (42% - 68%) -->
+    <section class="story-section section-dynamics" id="sec2" data-index="2" data-start="0.42" data-end="0.68">
+      <div class="section-inner layout-split-right">
+        <div class="glass-card story-card">
+          <div class="card-header">
+            <span class="card-stage">CHAPTER 03 // DYNAMICS</span>
+            <div class="telemetry-badge">180° REVERSE ANGLE</div>
+          </div>
+          <h2 class="card-title">Dynamic Equilibrium & Kinematic Flow</h2>
+          <p class="card-body">
+            As the viewing perspective sweeps across the asset’s lateral axis, volumetric density is redistributed to maintain center-of-mass neutrality.
+          </p>
+          
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-val" data-target="99.8">99.8<span class="metric-unit">%</span></div>
+              <div class="metric-lbl">Structural Rigidity</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" data-target="3.4">3.4<span class="metric-unit">x</span></div>
+              <div class="metric-lbl">Torsional Strength</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" data-target="142">142<span class="metric-unit">g</span></div>
+              <div class="metric-lbl">Ultralight Mass</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" data-target="24">24<span class="metric-unit">fps</span></div>
+              <div class="metric-lbl">Master Capture</div>
+            </div>
+          </div>
+
+          <div class="interactive-inspectors">
+            <button class="inspect-btn active" data-mode="wireframe">WIREFRAME</button>
+            <button class="inspect-btn" data-mode="thermal">THERMAL</button>
+            <button class="inspect-btn" data-mode="normal">SHADED</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Core Architecture (68% - 88%) -->
+    <section class="story-section section-core" id="sec3" data-index="3" data-start="0.68" data-end="0.88">
+      <div class="section-inner layout-split-left">
+        <div class="glass-card story-card">
+          <div class="card-header">
+            <span class="card-stage">CHAPTER 04 // INTERNAL MATRIX</span>
+            <div class="card-status-pill">INSPECTION MODE</div>
+          </div>
+          <h2 class="card-title">Algorithmic Precision Inside & Out</h2>
+          <p class="card-body">
+            Engineered through recursive generative modeling. The internal cellular matrix delivers maximum acoustic absorption and rapid thermal dissipation.
+          </p>
+
+          <div class="tech-spec-list">
+            <div class="spec-row">
+              <span class="spec-k">MATERIAL COMPOSITION</span>
+              <span class="spec-v">Grade 5 Aerospace Titanium + Silicon Carbide</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">OPTICAL RESOLUTION</span>
+              <span class="spec-v">Native 1280 × 720 @ 24.00p Master</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">SYNTHESIS ENGINE</span>
+              <span class="spec-v">Google Generative Media Core</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">SAMPLING FREQUENCY</span>
+              <span class="spec-v">48.0 kHz 24-Bit Spatial Matrix</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Specification & Finale (88% - 100%) -->
+    <section class="story-section section-finale" id="sec4" data-index="4" data-start="0.88" data-end="1.0">
+      <div class="section-inner finale-inner">
+        <div class="badge-pill success">
+          <span class="badge-pulse green"></span>
+          <span>SEQUENCE COMPLETE // 360° RECONSTRUCTION READY</span>
+        </div>
+        <h2 class="finale-title">
+          EXPERIENCE <span class="glow-text">THE FUTURE</span>
+        </h2>
+        <p class="finale-sub">
+          The next era of physical-digital synthesis is here. Explore technical documentation or acquire the reference master suite.
+        </p>
+
+        <div class="finale-cards-row">
+          <div class="glass-summary-card">
+            <div class="summary-icon">⚡</div>
+            <div class="summary-content">
+              <h3>Instant Latency</h3>
+              <p>Sub-ms response on all transformations.</p>
+            </div>
+          </div>
+          <div class="glass-summary-card">
+            <div class="summary-icon">🛡️</div>
+            <div class="summary-content">
+              <h3>Indestructible Core</h3>
+              <p>Molecular lattice impervious to strain.</p>
+            </div>
+          </div>
+          <div class="glass-summary-card">
+            <div class="summary-icon">∞</div>
+            <div class="summary-content">
+              <h3>Perpetual Sync</h3>
+              <p>Direct scroll-coupled frame indexing.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="finale-actions">
+          <button class="btn-glow large" id="orderModelBtn">
+            <span>PRE-ORDER REFERENCE UNIT</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+          <button class="btn-ghost large" id="replayBtn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>REPLAY FROM START</span>
+          </button>
+        </div>
+
+        <footer class="hud-footer">
+          <div class="footer-left">
+            <span>PROJECT 3D // SCROLL-DRIVEN MEDIA SYSTEM</span>
+            <span class="sep">•</span>
+            <span>STREAM: <span id="footerStreamInfo">CONNECTING</span></span>
+          </div>
+          <div class="footer-right">
+            <span>PRESS <kbd>?</kbd> FOR KEYBOARD SHORTCUTS</span>
+          </div>
+        </footer>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Timeline & Scrubbing Control Bar -->
+  <footer class="bottom-scrub-bar" id="bottomBar">
+    <div class="scrub-controls-left">
+      <!-- Play/Pause Button -->
+      <button id="barPlayBtn" class="bar-btn" title="Toggle Play / Pause (Space)">
+        <svg class="icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="display:none;">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+      </button>
+
+      <!-- Timecode Readout -->
+      <div class="timecode-display">
+        <span class="tc-current" id="tcCurrent">00:00.00</span>
+        <span class="tc-sep">/</span>
+        <span class="tc-total" id="tcTotal">00:10.03</span>
+      </div>
+
+      <!-- Frame Counter Readout -->
+      <div class="frame-display">
+        <span class="fr-label">FRAME</span>
+        <span class="fr-count" id="frCount">001 / 240</span>
+      </div>
+    </div>
+
+    <!-- Interactive Draggable / Clickable Timeline Scrubber -->
+    <div class="scrub-timeline" id="scrubTimeline">
+      <div class="timeline-track" id="timelineTrack">
+        <!-- Buffer indicator -->
+        <div class="timeline-buffered" id="timelineBuffered"></div>
+        <!-- Progress bar -->
+        <div class="timeline-progress" id="timelineProgress"></div>
+        <!-- Chapter Milestone Markers -->
+        <div class="timeline-marker" style="left: 0%;" data-tooltip="01 Genesis (0.0s)"></div>
+        <div class="timeline-marker" style="left: 20%;" data-tooltip="02 Anatomy (2.0s)"></div>
+        <div class="timeline-marker" style="left: 45%;" data-tooltip="03 Dynamics (4.5s)"></div>
+        <div class="timeline-marker" style="left: 70%;" data-tooltip="04 Matrix (7.0s)"></div>
+        <div class="timeline-marker" style="left: 90%;" data-tooltip="05 Finale (9.0s)"></div>
+        <!-- Scrubber Draggable Thumb Handle -->
+        <div class="timeline-thumb" id="timelineThumb">
+          <div class="thumb-glow"></div>
+        </div>
+      </div>
+      <!-- Hover time popup preview tooltip -->
+      <div class="timeline-tooltip" id="timelineTooltip">00:00.00</div>
+    </div>
+
+    <div class="scrub-controls-right">
+      <!-- Lerp Smoothness Mode Selector -->
+      <div class="smooth-mode-selector">
+        <span class="sm-label">SMOOTHING:</span>
+        <button class="sm-btn active" data-lerp="0.15" title="Silky smooth inertia">ULTRA</button>
+        <button class="sm-btn" data-lerp="0.25" title="Responsive balance">BALANCED</button>
+        <button class="sm-btn" data-lerp="0.5" title="Direct instantaneous tracking">DIRECT</button>
+      </div>
+
+      <!-- Fullscreen Toggle -->
+      <button id="fullscreenBtn" class="bar-btn icon-only" title="Toggle Fullscreen (F)">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
+
+      <!-- Shortcuts Cheatsheet Button -->
+      <button id="shortcutsBtn" class="bar-btn icon-only" title="Keyboard Shortcuts (?)">
+        <span style="font-size:12px;font-weight:700;">?</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Modal: Specification Sheet -->
+  <div class="modal-backdrop" id="specModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-badge">DATA SHEET // REF 8E50077</span>
+          <h2 class="modal-title">Engineering Specifications</h2>
+        </div>
+        <button class="modal-close" id="closeSpecModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="specs-table">
+          <tbody id="specsTableBody">
+            <tr>
+              <td>Primary Asset</td>
+              <td>gemini_generated_video_b8e50077.mp4</td>
+            </tr>
+            <tr>
+              <td>Backend Service</td>
+              <td id="specBackendStatus">http://localhost:5001 (Active)</td>
+            </tr>
+            <tr>
+              <td>Encoding / Codec</td>
+              <td>H.264 (High Profile) / AAC Audio</td>
+            </tr>
+            <tr>
+              <td>Native Dimensions</td>
+              <td>1280 × 720 (High Definition 16:9)</td>
+            </tr>
+            <tr>
+              <td>Frame Rate & Count</td>
+              <td>24.00 fps / 240 Sample Frames Total</td>
+            </tr>
+            <tr>
+              <td>Duration</td>
+              <td>10.027 Seconds Continuous Sequence</td>
+            </tr>
+            <tr>
+              <td>Bitrate</td>
+              <td>2,939 kbps Combined (2,811 kbps Video)</td>
+            </tr>
+            <tr>
+              <td>Scroll Controller Engine</td>
+              <td>RequestAnimationFrame with Damped Dual-Lerp (0.15)</td>
+            </tr>
+            <tr>
+              <td>Audio Capabilities</td>
+              <td>Spatial Audio Channel (Muted by default per Web Policy)</td>
+            </tr>
+            <tr>
+              <td>Synthesizer Provenance</td>
+              <td>Google Generative Media Core with SynthID Watermarking</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-glow" id="specCloseBtn">DISMISS SPECIFICATION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pre-Order / Inquiry (Connected to Backend API) -->
+  <div class="modal-backdrop" id="orderModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-badge">RESERVATION // STAGE 01</span>
+          <h2 class="modal-title">Reserve Project 3D Reference Unit</h2>
+        </div>
+        <button class="modal-close" id="closeOrderModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Join the priority production allocation. Each unit is individually serialized and balanced for high-fidelity spatial applications.
+        </p>
+        <div id="orderSuccessAlert" style="display:none;background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#86efac;padding:12px;border-radius:10px;margin-bottom:16px;font-family:var(--font-mono);font-size:12px;"></div>
+        <form id="orderForm">
+          <div class="form-group">
+            <label>Full Name / Organization</label>
+            <input type="text" id="orderName" required placeholder="e.g. Elena Rostova / Skunkworks" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Priority Communication Email</label>
+            <input type="email" id="orderEmail" required placeholder="e.g. name@domain.io" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Deployment Profile</label>
+            <select id="orderProfile" class="form-input">
+              <option>Industrial Aerospace Validation</option>
+              <option>Real-Time Spatial Simulation</option>
+              <option>High-End Commercial Exhibition</option>
+              <option>Autonomous Robotics Platform</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="orderSubmitBtn" class="btn-glow full-width">CONFIRM PRIORITY ALLOCATION</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Keyboard Shortcuts -->
+  <div class="modal-backdrop" id="shortcutsModal">
+    <div class="modal-window small">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2 class="modal-title">Keyboard Navigation</h2>
+        </div>
+        <button class="modal-close" id="closeShortcutsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcuts-grid">
+          <div class="shortcut-item"><kbd>Space</kbd> <span>Toggle Cinematic Auto-Tour / Pause</span></div>
+          <div class="shortcut-item"><kbd>↓</kbd> / <kbd>PageDown</kbd> <span>Scroll Down / Forward in Video</span></div>
+          <div class="shortcut-item"><kbd>↑</kbd> / <kbd>PageUp</kbd> <span>Scroll Up / Rewind Video</span></div>
+          <div class="shortcut-item"><kbd>Home</kbd> <span>Jump to Beginning (Frame 1)</span></div>
+          <div class="shortcut-item"><kbd>End</kbd> <span>Jump to Finale (Frame 240)</span></div>
+          <div class="shortcut-item"><kbd>1</kbd> - <kbd>5</kbd> <span>Jump to Chapters 01 - 05</span></div>
+          <div class="shortcut-item"><kbd>M</kbd> <span>Toggle Video Audio (Mute / Unmute)</span></div>
+          <div class="shortcut-item"><kbd>F</kbd> <span>Toggle Fullscreen Mode</span></div>
+          <div class="shortcut-item"><kbd>?</kbd> <span>Show / Hide this Shortcuts Guide</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
